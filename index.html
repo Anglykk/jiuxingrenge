@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>九型人格测评</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(165deg, #eaf7f2 0%, #f6fbf9 45%, #e6f4ef 100%);
+    background-attachment: fixed;
+    min-height:100vh; color:#1f3b34; padding:16px;
+    display:flex; justify-content:center;
+  }
+  .app { width:100%; max-width:640px; }
+
+  #screen-start { text-align:center; padding-top:10vh; }
+  #screen-start h1 {
+    font-size:28px; font-weight:700; letter-spacing:2px; margin-bottom:14px;
+    background:linear-gradient(90deg,#0d9488,#14b8a6,#34d399);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  #screen-start .sub { font-size:14px; color:#5b7a72; line-height:1.9; margin-bottom:32px; }
+
+  .btn {
+    display:inline-block; padding:14px 52px; border:none; border-radius:999px;
+    font-size:16px; font-weight:600; cursor:pointer; color:#fff;
+    background:linear-gradient(135deg,#14b8a6,#0d9488);
+    box-shadow:0 8px 22px rgba(13,148,136,.28);
+    transition:transform .15s;
+  }
+  .btn:active { transform:scale(.96); }
+  .btn.ghost {
+    background:rgba(255,255,255,.85); color:#0d9488;
+    border:1.5px solid rgba(20,184,166,.28);
+    box-shadow:none; margin-left:8px;
+  }
+  .disclaimer { margin-top:36px; font-size:12px; color:#8aa39c; line-height:1.8; padding:0 20px; }
+
+  #screen-info { display:none; padding-top:4vh; }
+  .info-title { font-size:22px; font-weight:700; text-align:center; margin-bottom:8px; }
+  .info-sub { font-size:13px; color:#5b7a72; text-align:center; margin-bottom:28px; line-height:1.8; }
+
+  .field { margin-bottom:18px; }
+  .field label { display:block; font-size:13px; font-weight:600; color:#3d5c54; margin-bottom:8px; }
+  .field label .req { color:#d96b7a; margin-left:2px; }
+  .field input {
+    width:100%; padding:14px 16px; font-size:15px; color:#1f3b34;
+    background:rgba(255,255,255,.85);
+    border:1.5px solid rgba(20,184,166,.20);
+    border-radius:12px; outline:none; font-family:inherit;
+  }
+  .field input:focus {
+    border-color:rgba(20,184,166,.55);
+    box-shadow:0 0 0 3px rgba(20,184,166,.10);
+    background:#fff;
+  }
+  .field .err { font-size:12px; color:#d96b7a; margin-top:6px; display:none; }
+  .field.invalid input { border-color:#d96b7a; }
+  .field.invalid .err { display:block; }
+
+  .agree { display:flex; align-items:flex-start; gap:9px;
+    font-size:12px; color:#7a948d; line-height:1.7; margin:22px 0 10px; }
+  .agree input { flex-shrink:0; width:16px; height:16px; margin-top:2px; accent-color:#14b8a6; }
+
+  #screen-quiz { display:none; }
+  .topbar { display:flex; justify-content:space-between; align-items:center;
+    font-size:13px; color:#5b7a72; margin-bottom:10px; }
+  .progress-wrap { height:6px; background:rgba(20,184,166,.14); border-radius:3px; overflow:hidden; margin-bottom:28px; }
+  .progress-bar { height:100%; width:0%; border-radius:3px;
+    background:linear-gradient(90deg,#34d399,#10b981); transition:width .35s ease; }
+
+  .q-index { font-size:12px; color:#0d9488; font-weight:700; letter-spacing:1px; margin-bottom:12px; }
+  .q-text { font-size:17px; line-height:1.75; font-weight:600; margin-bottom:24px; color:#1f3b34; }
+
+  .opt {
+    display:flex; align-items:flex-start; gap:12px;
+    background:rgba(255,255,255,.78);
+    border:1.5px solid rgba(20,184,166,.16);
+    border-radius:14px; padding:16px 18px; margin-bottom:11px;
+    cursor:pointer; transition:all .18s; font-size:15px; line-height:1.6;
+  }
+  .opt:hover { background:#fff; border-color:rgba(20,184,166,.45); transform:translateY(-1px); }
+  .opt:active { transform:scale(.985); }
+  .opt .tag {
+    flex-shrink:0; width:24px; height:24px; border-radius:50%;
+    background:rgba(20,184,166,.14); color:#0d9488;
+    font-size:12px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; margin-top:1px;
+  }
+  .opt.chosen {
+    border-color:#14b8a6; background:#fff;
+    box-shadow:0 0 0 3px rgba(20,184,166,.12);
+  }
+  .opt.chosen .tag { background:#14b8a6; color:#fff; }
+
+  .navrow { display:flex; gap:10px; margin-top:22px; }
+  .navrow .btn { flex:1; padding:13px 0; font-size:15px; }
+  .navrow .btn.ghost { margin-left:0; }
+
+  #screen-result { display:none; }
+  .res-title { font-size:22px; font-weight:700; text-align:center; margin-bottom:20px; }
+
+  /* ===== 一行三段的基本信息 ===== */
+  .person-card {
+    display:flex; align-items:stretch;
+    padding:14px 6px !important; margin-bottom:20px !important;
+  }
+  .pc-item {
+    flex:1; min-width:0; padding:0 10px;
+    display:flex; flex-direction:column; align-items:center; gap:5px;
+    position:relative;
+  }
+  .pc-item + .pc-item::before {
+    content:""; position:absolute; left:0; top:15%; bottom:15%;
+    width:1px; background:rgba(20,184,166,.16);
+  }
+  .pc-label {
+    color:#7a948d; font-size:11px; letter-spacing:.5px;
+    flex-shrink:0; white-space:nowrap;
+  }
+  .pc-val {
+    color:#1f3b34; font-weight:700; font-size:13.5px; line-height:1.4;
+    text-align:center; word-break:break-all; max-width:100%;
+  }
+  .pc-val.phone { font-size:12.5px; letter-spacing:.2px; }
+
+  .res-main { text-align:center; font-size:14px; color:#5b7a72; margin-bottom:20px; }
+  .res-main b { color:#0d9488; font-size:17px; }
+
+  .legend {
+    display:flex; justify-content:center; gap:18px; flex-wrap:wrap;
+    font-size:12px; color:#5b7a72; margin-bottom:18px;
+  }
+  .legend i {
+    display:inline-block; width:11px; height:11px; border-radius:3px;
+    margin-right:5px; vertical-align:-1px;
+  }
+  .legend .k-yes    { background:linear-gradient(90deg,#34d399,#10b981); }
+  .legend .k-unsure { background:#cfd8d5; }
+  .legend .k-no     { background:#f0a8b2; }
+
+  .chart { margin-bottom:26px; }
+
+  .row { display:flex; align-items:center; margin-bottom:14px; font-size:13px; }
+  .row .name {
+    width:96px; flex-shrink:0; color:#3d5c54; font-size:12.5px;
+    line-height:1.3; font-variant-numeric:tabular-nums;
+  }
+  .row.top .name { color:#0d9488; font-weight:700; }
+
+  .row .track {
+    flex:1; height:26px; border-radius:8px; overflow:hidden;
+    display:flex; background:rgba(20,184,166,.06);
+  }
+
+  .seg {
+    height:100%; display:flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:700; color:#fff;
+    font-variant-numeric:tabular-nums;
+    transition:width .7s cubic-bezier(.2,.8,.2,1);
+    overflow:hidden; white-space:nowrap;
+  }
+  .seg-yes    { background:linear-gradient(90deg,#34d399,#10b981); }
+  .seg-unsure { background:#cfd8d5; color:#5b6b66; }
+  .seg-no     { background:#f0a8b2; color:#8a3b48; }
+
+  .card { background:rgba(255,255,255,.72); border:1px solid rgba(20,184,166,.14);
+    border-radius:16px; padding:20px; margin-bottom:16px; line-height:1.8; font-size:14px; }
+  .card h3 { font-size:15px; color:#0d9488; margin-bottom:10px; }
+
+  .toast { position:fixed; left:50%; bottom:40px; transform:translateX(-50%);
+    background:rgba(31,59,52,.92); color:#fff; padding:10px 22px; border-radius:999px;
+    font-size:13px; opacity:0; pointer-events:none; transition:opacity .25s;
+    white-space:nowrap; z-index:99; }
+  .toast.show { opacity:1; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <section id="screen-start">
+    <h1>九型人格测评</h1>
+    <p class="sub">
+      共 180 道题，约需 15 分钟<br>
+      每题三个选项：符合 / 不确定 / 不符合<br>
+      凭第一直觉作答，不必反复权衡
+    </p>
+    <button class="btn" id="start-btn" onclick="goInfo()">开始测试</button>
+    <p class="disclaimer">
+      本测试用于自我认知参考，不作为心理诊断依据。<br>
+    </p>
+  </section>
+
+  <section id="screen-info">
+    <h2 class="info-title">填写基本信息</h2>
+    <p class="info-sub">信息仅用于面试评估与结果归档</p>
+
+    <div class="field" id="f-name">
+      <label>姓名<span class="req">*</span></label>
+      <input type="text" id="in-name" placeholder="请输入真实姓名" maxlength="20" autocomplete="name">
+      <div class="err">请填写姓名</div>
+    </div>
+
+    <div class="field" id="f-phone">
+      <label>手机号<span class="req">*</span></label>
+      <input type="tel" id="in-phone" placeholder="请输入 11 位手机号" maxlength="11" inputmode="numeric" autocomplete="tel">
+      <div class="err">请填写正确的 11 位手机号</div>
+    </div>
+
+    <div class="field" id="f-position">
+      <label>面试岗位<span class="req">*</span></label>
+      <input type="text" id="in-position" placeholder="如：销售经理 / 前端工程师" maxlength="30">
+      <div class="err">请填写面试岗位</div>
+    </div>
+
+    <label class="agree">
+      <input type="checkbox" id="in-agree">
+      <span>我已阅读并同意，以上信息及测试结果将用于本次面试评估，不用于其他用途。</span>
+    </label>
+
+    <div class="navrow">
+      <button class="btn ghost" onclick="show(elStart)">返回</button>
+      <button class="btn" onclick="submitInfo()">开始答题</button>
+    </div>
+  </section>
+
+  <section id="screen-quiz">
+    <div class="topbar">
+      <span id="q-progress-text">第 1 / 180 题</span>
+      <span id="q-answered">已答 0 题</span>
+    </div>
+    <div class="progress-wrap"><div class="progress-bar" id="q-progress-bar"></div></div>
+
+    <div class="q-index" id="q-index">QUESTION 001</div>
+    <div class="q-text" id="q-text"></div>
+    <div id="q-options"></div>
+
+    <div class="navrow">
+      <button class="btn ghost" onclick="prevQ()">上一题</button>
+      <button class="btn ghost" onclick="resetAll()">重新开始</button>
+    </div>
+  </section>
+
+  <section id="screen-result">
+    <div class="res-title">测试结果</div>
+
+    <div class="card person-card">
+      <div class="pc-item">
+        <span class="pc-label">姓名</span>
+        <span class="pc-val" id="res-name">—</span>
+      </div>
+      <div class="pc-item">
+        <span class="pc-label">手机号</span>
+        <span class="pc-val phone" id="res-phone">—</span>
+      </div>
+      <div class="pc-item">
+        <span class="pc-label">面试岗位</span>
+        <span class="pc-val" id="res-position">—</span>
+      </div>
+    </div>
+
+    <div class="res-main">主型：<b id="res-main-type">—</b></div>
+
+    <div class="legend">
+      <span><i class="k-yes"></i>符合</span>
+      <span><i class="k-unsure"></i>不确定</span>
+      <span><i class="k-no"></i>不符合</span>
+    </div>
+
+    <div class="chart" id="chart"></div>
+
+    <div class="card">
+      <h3>主型解读</h3>
+      <div id="res-desc">—</div>
+    </div>
+
+    <div class="card">
+      <h3>说明</h3>
+      <div style="color:#7a948d;font-size:13px">
+        · 主型为「符合」次数最多者。<br>
+        · 本测试用于自我认知参考，不作为心理诊断依据。
+      </div>
+    </div>
+
+    <div class="navrow">
+      <button class="btn" onclick="resetAll()">重新测试</button>
+    </div>
+  </section>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+/* =========================================================
+   1. 九型基础信息
+   ========================================================= */
+const TYPES = {
+  1: { name:"1号 完美型", short:"1号", color:"#e07a5f", desc:"追求正确与秩序，有强烈的是非感，习惯修正不完美的地方。压力下容易自我苛责、挑剔他人。" },
+  2: { name:"2号 助人型", short:"2号", color:"#e8985e", desc:"敏锐察觉他人需要，乐于付出并渴望被需要。压力下容易忽略自己的需求、以付出换取认可。" },
+  3: { name:"3号 成就型", short:"3号", color:"#d4a017", desc:"目标导向、效率优先，擅长把事做成并展现价值。压力下容易以外在成绩定义自我。" },
+  4: { name:"4号 自我型", short:"4号", color:"#9b7bb8", desc:"情感细腻、重视独特与真实，对美和意义高度敏感。压力下容易陷入情绪、自我怀疑。" },
+  5: { name:"5号 理智型", short:"5号", color:"#5b8def", desc:"善于观察与分析，需要独立空间，用知识获得安全感。压力下容易退缩、过度抽离。" },
+  6: { name:"6号 忠诚型", short:"6号", color:"#3aa8a0", desc:"谨慎、负责、重视承诺，习惯预判风险。压力下容易焦虑、反复确认。" },
+  7: { name:"7号 活跃型", short:"7号", color:"#4caf7d", desc:"乐观、好奇、思维跳跃，喜欢新鲜体验和多种可能。压力下容易逃避痛苦、浅尝辄止。" },
+  8: { name:"8号 领袖型", short:"8号", color:"#d96b7a", desc:"直接、有力量、敢担当，习惯掌控局面、保护身边人。压力下容易强硬、对抗。" },
+  9: { name:"9号 和平型", short:"9号", color:"#7c8f99", desc:"温和、包容、善于协调，追求内在与人际的和谐。压力下容易回避冲突、拖延决断。" }
+};
+
+/* =========================================================
+   2. 题库：9 型 × 20 题 = 180 题
+   ========================================================= */
+const QUESTIONS = [
+  /* ============ 1号 完美型 ============ */
+  { type:1, q:"我常常注意到别人没做好的细节。" },
+  { type:1, q:"我对自己犯的错误很难释怀。" },
+  { type:1, q:"做事之前，我会先想清楚标准和对错。" },
+  { type:1, q:"看到不符合规范的做法，我会想指出来。" },
+  { type:1, q:"我很难接受「差不多就行」的做法。" },
+  { type:1, q:"我做事有自己的一套原则，不容易妥协。" },
+  { type:1, q:"我会反复检查，确保没有疏漏。" },
+  { type:1, q:"别人觉得我要求高、爱挑剔。" },
+  { type:1, q:"我愿意花额外时间把事情做对。" },
+  { type:1, q:"我常提醒自己要克制情绪、保持理性。" },
+  { type:1, q:"看到不公平的事，我会感到愤怒。" },
+  { type:1, q:"我希望别人也按我的标准来做事。" },
+  { type:1, q:"我很难放松，总觉得还有事要做。" },
+  { type:1, q:"我认为做事就该按正确的流程来。" },
+  { type:1, q:"我很难容忍拖延和不守规矩的人。" },
+  { type:1, q:"我常常在心里评判谁对谁错。" },
+  { type:1, q:"我不太在意细节，差不多就行。", reverse:true },
+  { type:1, q:"我不太会为错误纠结很久，过去就算了。", reverse:true },
+  { type:1, q:"我很少对别人的做法提出批评。", reverse:true },
+  { type:1, q:"我对规则和标准没有特别的坚持。", reverse:true },
+
+  /* ============ 2号 助人型 ============ */
+  { type:2, q:"我很容易察觉到别人的需要。" },
+  { type:2, q:"别人有困难时，我会主动伸手帮忙。" },
+  { type:2, q:"我希望自己在别人心里是重要的。" },
+  { type:2, q:"我很难拒绝别人的请求。" },
+  { type:2, q:"我常常先照顾别人，最后才想到自己。" },
+  { type:2, q:"被需要的时候，我特别有满足感。" },
+  { type:2, q:"我会记得别人提过的小事和喜好。" },
+  { type:2, q:"我害怕被人说冷漠或不近人情。" },
+  { type:2, q:"我愿意为亲近的人付出很多。" },
+  { type:2, q:"我常主动关心别人最近过得怎么样。" },
+  { type:2, q:"我希望别人能感受到我的用心。" },
+  { type:2, q:"别人难过时，我比他还着急。" },
+  { type:2, q:"我容易因为别人不领情而受伤。" },
+  { type:2, q:"我习惯把关系维护好，让大家舒服。" },
+  { type:2, q:"我喜欢被人依赖的感觉。" },
+  { type:2, q:"我会为了让别人高兴而调整自己。" },
+  { type:2, q:"别人来找我帮忙时，我常常觉得麻烦。", reverse:true },
+  { type:2, q:"我不太会留意别人情绪上的细微变化。", reverse:true },
+  { type:2, q:"我很少为了别人而改变自己的安排。", reverse:true },
+  { type:2, q:"我不太在意别人是否需要我。", reverse:true },
+
+  /* ============ 3号 成就型 ============ */
+  { type:3, q:"我很在意自己是否做出了成绩。" },
+  { type:3, q:"我做事讲究效率，不喜欢拖沓。" },
+  { type:3, q:"我希望在人群中被认可和看见。" },
+  { type:3, q:"我习惯给自己设定目标并全力完成。" },
+  { type:3, q:"我会根据场合调整自己的表现方式。" },
+  { type:3, q:"失败会让我很难受，想尽快扳回来。" },
+  { type:3, q:"我习惯用成果来证明自己的价值。" },
+  { type:3, q:"我很在意别人对我的评价和印象。" },
+  { type:3, q:"我擅长同时推进几件事。" },
+  { type:3, q:"我不喜欢在别人面前显露脆弱。" },
+  { type:3, q:"我会为了目标暂时放下感受。" },
+  { type:3, q:"我喜欢被当作能干、靠谱的人。" },
+  { type:3, q:"我常拿自己和别人比较。" },
+  { type:3, q:"忙碌的状态让我觉得踏实。" },
+  { type:3, q:"我会主动争取表现的机会。" },
+  { type:3, q:"我很难接受自己落后于人。" },
+  { type:3, q:"我不太在意别人怎么看我。", reverse:true },
+  { type:3, q:"我不太给自己设定明确的目标。", reverse:true },
+  { type:3, q:"做不成一件事，我不会太放在心上。", reverse:true },
+  { type:3, q:"我不喜欢被关注，宁愿待在角落。", reverse:true },
+
+  /* ============ 4号 自我型 ============ */
+  { type:4, q:"我常常感到自己和别人不太一样。" },
+  { type:4, q:"我很在意事情背后有没有意义。" },
+  { type:4, q:"我的情绪起伏比一般人明显。" },
+  { type:4, q:"我喜欢有美感、有格调的东西。" },
+  { type:4, q:"我渴望被真正理解，而不是被敷衍。" },
+  { type:4, q:"我容易沉浸在自己的感受里。" },
+  { type:4, q:"我不喜欢流于表面的人际关系。" },
+  { type:4, q:"我会因为一首歌、一段文字而感动很久。" },
+  { type:4, q:"我常常觉得自己不够好、不如别人。" },
+  { type:4, q:"我重视真实，讨厌虚假和做作。" },
+  { type:4, q:"我想做出有个人风格的事情。" },
+  { type:4, q:"我有时会莫名地感到忧郁。" },
+  { type:4, q:"我需要独处的时间来整理心情。" },
+  { type:4, q:"我对缺失和遗憾特别敏感。" },
+  { type:4, q:"我希望自己的生活是有故事的。" },
+  { type:4, q:"我容易记住那些让我受伤的细节。" },
+  { type:4, q:"我的情绪比较平稳，很少大起大落。", reverse:true },
+  { type:4, q:"我不太在意一件事有没有独特的美感。", reverse:true },
+  { type:4, q:"我很少花时间沉浸在自己的感受里。", reverse:true },
+  { type:4, q:"我对人不太挑剔，大家差不多都一样。", reverse:true },
+
+  /* ============ 5号 理智型 ============ */
+  { type:5, q:"我喜欢先观察和思考，再行动。" },
+  { type:5, q:"我需要足够的独处空间。" },
+  { type:5, q:"我遇到问题会先查资料、弄清楚原理。" },
+  { type:5, q:"我更喜欢用理性而不是情绪来处理事情。" },
+  { type:5, q:"社交太久会让我觉得消耗。" },
+  { type:5, q:"我不太愿意把自己的私事告诉别人。" },
+  { type:5, q:"我喜欢深入钻研一个领域。" },
+  { type:5, q:"我习惯在心里分析人和事。" },
+  { type:5, q:"如果准备不充分，我会不安。" },
+  { type:5, q:"我更愿意自己解决，而不是求助。" },
+  { type:5, q:"我对信息、知识有强烈的兴趣。" },
+  { type:5, q:"我常常觉得说太多没必要。" },
+  { type:5, q:"我倾向于保持情感上的距离。" },
+  { type:5, q:"我需要时间消化被问到的复杂问题。" },
+  { type:5, q:"我认为想清楚比做出来更重要。" },
+  { type:5, q:"我更喜欢自己掌控节奏的工作。" },
+  { type:5, q:"我喜欢热闹，人多的时候更有活力。", reverse:true },
+  { type:5, q:"我常常凭直觉和感受做决定。", reverse:true },
+  { type:5, q:"我愿意把自己的心事讲给别人听。", reverse:true },
+  { type:5, q:"我不太需要独处，和人待着更自在。", reverse:true },
+
+  /* ============ 6号 忠诚型 ============ */
+  { type:6, q:"我做事前常会想到可能出现的问题。" },
+  { type:6, q:"我需要确定感，不喜欢太多变数。" },
+  { type:6, q:"我会反复确认事情有没有做好。" },
+  { type:6, q:"我很看重承诺和忠诚。" },
+  { type:6, q:"面对不确定的局面，我会焦虑。" },
+  { type:6, q:"我常常在心里预演最坏的情况。" },
+  { type:6, q:"我倾向于先观察，再决定要不要信任。" },
+  { type:6, q:"我不喜欢被别人催着做决定。" },
+  { type:6, q:"我会为了稳妥放弃一些机会。" },
+  { type:6, q:"我常常向信任的人寻求意见。" },
+  { type:6, q:"我会认真履行答应别人的事。" },
+  { type:6, q:"我对规则和制度的依赖度较高。" },
+  { type:6, q:"我容易怀疑别人话里的真实意图。" },
+  { type:6, q:"在团队里，我希望有明确的分工。" },
+  { type:6, q:"我常常担心自己做得不够好。" },
+  { type:6, q:"我常提醒自己不能掉以轻心。" },
+  { type:6, q:"我不太会去想事情可能出什么问题。", reverse:true },
+  { type:6, q:"面对变数，我通常很淡定。", reverse:true },
+  { type:6, q:"我很容易相信别人，不太会怀疑。", reverse:true },
+  { type:6, q:"做决定时我很快，不会反复纠结。", reverse:true },
+
+  /* ============ 7号 活跃型 ============ */
+  { type:7, q:"我喜欢尝试新鲜的事情。" },
+  { type:7, q:"我脑子里常常同时有很多想法。" },
+  { type:7, q:"我不喜欢重复、单调的工作。" },
+  { type:7, q:"我倾向于把事情往好的方向想。" },
+  { type:7, q:"遇到不开心的事，我会找点别的转移注意。" },
+  { type:7, q:"我喜欢把日程排得满满当当。" },
+  { type:7, q:"我很难长时间专注在一件事上。" },
+  { type:7, q:"我喜欢和有趣的人待在一起。" },
+  { type:7, q:"我不太愿意面对沉重的情绪。" },
+  { type:7, q:"我常同时开始好几件事。" },
+  { type:7, q:"我很享受计划和期待的过程。" },
+  { type:7, q:"被限制自由会让我不舒服。" },
+  { type:7, q:"我常常想到什么就立刻去做。" },
+  { type:7, q:"我喜欢用幽默化解尴尬。" },
+  { type:7, q:"我不喜欢被长期的承诺束缚。" },
+  { type:7, q:"我认为人生应该多体验、少遗憾。" },
+  { type:7, q:"我喜欢按部就班，不喜欢变动。", reverse:true },
+  { type:7, q:"我愿意长时间待在一件沉闷的事上。", reverse:true },
+  { type:7, q:"我很少同时想做很多件事。", reverse:true },
+  { type:7, q:"我不喜欢太热闹的场合。", reverse:true },
+
+  /* ============ 8号 领袖型 ============ */
+  { type:8, q:"我习惯在团队中拿主意。" },
+  { type:8, q:"我说话直接，不喜欢绕弯子。" },
+  { type:8, q:"遇到不公正的事，我会站出来。" },
+  { type:8, q:"我不喜欢被别人控制或指挥。" },
+  { type:8, q:"我愿意为身边的人出头。" },
+  { type:8, q:"我做决定很快，不喜欢犹豫。" },
+  { type:8, q:"我不太愿意示弱或求人。" },
+  { type:8, q:"我希望自己在场上有分量。" },
+  { type:8, q:"我会为了目标硬碰硬地争取。" },
+  { type:8, q:"我讨厌被人背后议论或算计。" },
+  { type:8, q:"我更愿意自己扛责任。" },
+  { type:8, q:"我不喜欢被规则过多约束。" },
+  { type:8, q:"我尊重强者，也愿意成为强者。" },
+  { type:8, q:"我很难容忍软弱和退缩。" },
+  { type:8, q:"我会直接指出别人的问题。" },
+  { type:8, q:"我常被说太强势。" },
+  { type:8, q:"我很少主动拿主意，更愿意听别人安排。", reverse:true },
+  { type:8, q:"我说话比较委婉，不想引起冲突。", reverse:true },
+  { type:8, q:"我不太愿意为别人出头冒险。", reverse:true },
+  { type:8, q:"我不太在意自己有没有话语权。", reverse:true },
+
+  /* ============ 9号 和平型 ============ */
+  { type:9, q:"我倾向于避免冲突。" },
+  { type:9, q:"我很容易接受别人的安排。" },
+  { type:9, q:"我不太愿意表达自己的不满。" },
+  { type:9, q:"我喜欢轻松和谐的氛围。" },
+  { type:9, q:"做决定时，我会考虑各方感受。" },
+  { type:9, q:"我常常拖到最后才动手。" },
+  { type:9, q:"我不喜欢被人催促。" },
+  { type:9, q:"我容易顺着别人的意思走。" },
+  { type:9, q:"我常常忘了自己真正想要什么。" },
+  { type:9, q:"我倾向于把事情往后放一放。" },
+  { type:9, q:"我不太会主动争取。" },
+  { type:9, q:"我对很多事情都能接受。" },
+  { type:9, q:"别人有争执时，我会想办法调和。" },
+  { type:9, q:"我说话语气比较平缓。" },
+  { type:9, q:"我有时会显得没什么主见。" },
+  { type:9, q:"我会为了维持关系而让步。" },
+  { type:9, q:"遇到分歧，我会马上把自己的态度说清楚。", reverse:true },
+  { type:9, q:"我做事很干脆，很少拖延。", reverse:true },
+  { type:9, q:"我常常主动争取自己想要的。", reverse:true },
+  { type:9, q:"我很有自己的主见，不容易被说服。", reverse:true }
+];
+
+const TOTAL_Q = QUESTIONS.length;
+const PER_TYPE = 20;
+
+/* =========================================================
+   3. 状态管理
+   ========================================================= */
+const STORAGE_KEY = "enneagram_180x3_state_v11";
+
+let state = {
+  user: { name:"", phone:"", position:"" },
+  qOrder: [],
+  answers: [],
+  current: 0
+};
+
+let OPT_ORDER = [];
+
+function shuffle(arr){
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+const OPT_DEFS = [
+  { key:"yes",    label:"符合" },
+  { key:"unsure", label:"不确定" },
+  { key:"no",     label:"不符合" }
+];
+
+function newState(user){
+  OPT_ORDER = Array.from({ length: TOTAL_Q }, ()=> shuffle([0,1,2]));
+  return {
+    user: user ? { ...user } : { name:"", phone:"", position:"" },
+    qOrder: shuffle([...Array(TOTAL_Q).keys()]),
+    answers: new Array(TOTAL_Q).fill(null),
+    current: 0
+  };
+}
+
+function saveState(){
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){}
+}
+
+function loadState(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const s = JSON.parse(raw);
+    if (!s || !s.user || typeof s.user.name !== "string") return false;
+    if (!Array.isArray(s.qOrder)  || s.qOrder.length  !== TOTAL_Q) return false;
+    if (!Array.isArray(s.answers) || s.answers.length !== TOTAL_Q) return false;
+    if (typeof s.current !== "number") return false;
+    state = s;
+    OPT_ORDER = Array.from({ length: TOTAL_Q }, ()=> shuffle([0,1,2]));
+    return true;
+  } catch(e){ return false; }
+}
+
+function clearState(){
+  try { localStorage.removeItem(STORAGE_KEY); } catch(e){}
+}
+
+/* =========================================================
+   4. 统计：符合 / 不确定 / 不符合 次数
+   ========================================================= */
+function calcDistribution(){
+  const dist = {};
+  for (let i = 1; i <= 9; i++) dist[i] = { yes:0, unsure:0, no:0 };
+
+  state.answers.forEach((ans, qi)=>{
+    if (ans === null) return;
+    const t = QUESTIONS[qi].type;
+    dist[t][ans]++;
+  });
+  return dist;
+}
+
+/* =========================================================
+   5. 界面控制
+   ========================================================= */
+const elStart  = document.getElementById("screen-start");
+const elInfo   = document.getElementById("screen-info");
+const elQuiz   = document.getElementById("screen-quiz");
+const elResult = document.getElementById("screen-result");
+
+function show(el){
+  [elStart, elInfo, elQuiz, elResult].forEach(s => s.style.display = "none");
+  el.style.display = "block";
+  window.scrollTo(0,0);
+}
+
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=> t.classList.remove("show"), 1800);
+}
+
+function goInfo(){
+  document.getElementById("in-name").value     = state.user.name || "";
+  document.getElementById("in-phone").value    = state.user.phone || "";
+  document.getElementById("in-position").value = state.user.position || "";
+  clearFieldErrors();
+  show(elInfo);
+}
+
+function clearFieldErrors(){
+  ["f-name","f-phone","f-position"].forEach(id=>{
+    document.getElementById(id).classList.remove("invalid");
+  });
+}
+
+function setFieldError(id){
+  document.getElementById(id).classList.add("invalid");
+}
+
+function submitInfo(){
+  clearFieldErrors();
+
+  const name     = document.getElementById("in-name").value.trim();
+  const phone    = document.getElementById("in-phone").value.trim();
+  const position = document.getElementById("in-position").value.trim();
+  const agree    = document.getElementById("in-agree").checked;
+
+  let ok = true;
+  if (!name){ setFieldError("f-name"); ok = false; }
+  if (!/^1[3-9]\d{9}$/.test(phone)){ setFieldError("f-phone"); ok = false; }
+  if (!position){ setFieldError("f-position"); ok = false; }
+  if (!ok){ toast("请完整填写必填信息"); return; }
+  if (!agree){ toast("请先勾选信息使用同意"); return; }
+
+  state = newState({ name, phone, position });
+  saveState();
+  show(elQuiz);
+  renderQ();
+}
+
+function renderQ(){
+  const pos = state.current;
+  const qi  = state.qOrder[pos];
+  const q   = QUESTIONS[qi];
+
+  const answered = state.answers.filter(a => a !== null).length;
+  document.getElementById("q-progress-text").textContent = `第 ${pos + 1} / ${TOTAL_Q} 题`;
+  document.getElementById("q-answered").textContent = `已答 ${answered} 题`;
+  document.getElementById("q-progress-bar").style.width =
+    `${(answered / TOTAL_Q * 100).toFixed(1)}%`;
+
+  document.getElementById("q-index").textContent =
+    `QUESTION ${String(pos + 1).padStart(3, "0")}`;
+  document.getElementById("q-text").textContent = q.q;
+
+  const box = document.getElementById("q-options");
+  box.innerHTML = "";
+
+  const letters = ["A","B","C"];
+  const cur = state.answers[qi];
+  const order = OPT_ORDER[qi];
+
+  order.forEach((defIdx, i)=>{
+    const o = OPT_DEFS[defIdx];
+    const div = document.createElement("div");
+    div.className = "opt" + (cur === o.key ? " chosen" : "");
+    div.innerHTML = `<span class="tag">${letters[i]}</span><span>${o.label}</span>`;
+    div.onclick = ()=> selectOption(qi, o.key);
+    box.appendChild(div);
+  });
+}
+
+function selectOption(qi, key){
+  state.answers[qi] = key;
+  saveState();
+
+  if (state.current + 1 < TOTAL_Q){
+    state.current++;
+    saveState();
+    renderQ();
+  } else {
+    renderResult();
+  }
+}
+
+function prevQ(){
+  if (state.current > 0){
+    state.current--;
+    saveState();
+    renderQ();
+  } else {
+    toast("已经是第一题了");
+  }
+}
+
+function resetAll(){
+  if (!confirm("确定要重新开始吗？当前答题记录会清空。")) return;
+  clearState();
+  state = newState();
+  document.getElementById("in-name").value = "";
+  document.getElementById("in-phone").value = "";
+  document.getElementById("in-position").value = "";
+  document.getElementById("in-agree").checked = false;
+  clearFieldErrors();
+  show(elStart);
+}
+
+/* =========================================================
+   6. 结果页
+   ========================================================= */
+function renderResult(){
+  const dist = calcDistribution();
+
+  const ranked = [1,2,3,4,5,6,7,8,9]
+    .map(t => ({ type:t, yes:dist[t].yes, unsure:dist[t].unsure, no:dist[t].no }))
+    .sort((a, b) => {
+      if (b.yes    !== a.yes)    return b.yes - a.yes;
+      if (b.unsure !== a.unsure) return b.unsure - a.unsure;
+      return a.type - b.type;
+    });
+
+  const mainType = ranked[0].type;
+
+  const u = state.user;
+  document.getElementById("res-name").textContent     = u.name     || "—";
+  document.getElementById("res-phone").textContent    = u.phone    || "—";
+  document.getElementById("res-position").textContent = u.position || "—";
+
+  document.getElementById("res-main-type").textContent = TYPES[mainType].name;
+
+  const chart = document.getElementById("chart");
+  chart.innerHTML = "";
+
+  ranked.forEach((item, i)=>{
+    const row = document.createElement("div");
+    row.className = "row" + (i === 0 ? " top" : "");
+
+    const w = n => (n / PER_TYPE) * 100;
+
+    let segs = "";
+    if (item.yes    > 0) segs += `<span class="seg seg-yes"    style="width:${w(item.yes)}%">${item.yes}</span>`;
+    if (item.unsure > 0) segs += `<span class="seg seg-unsure" style="width:${w(item.unsure)}%">${item.unsure}</span>`;
+    if (item.no     > 0) segs += `<span class="seg seg-no"     style="width:${w(item.no)}%">${item.no}</span>`;
+
+    row.innerHTML = `
+      <span class="name">${TYPES[item.type].name}</span>
+      <span class="track">${segs}</span>
+    `;
+    chart.appendChild(row);
+  });
+
+  document.getElementById("res-desc").innerHTML =
+    `<b style="color:${TYPES[mainType].color}">${TYPES[mainType].name}</b><br>${TYPES[mainType].desc}`;
+
+  saveState();
+  show(elResult);
+}
+
+/* =========================================================
+   7. 启动
+   ========================================================= */
+(function init(){
+  if (loadState()){
+    const answered = state.answers.filter(a => a !== null).length;
+    const startBtn = document.getElementById("start-btn");
+
+    document.getElementById("in-name").value     = state.user.name || "";
+    document.getElementById("in-phone").value    = state.user.phone || "";
+    document.getElementById("in-position").value = state.user.position || "";
+
+    if (answered === TOTAL_Q){
+      startBtn.textContent = "查看上次结果";
+      startBtn.onclick = ()=> renderResult();
+    } else if (answered > 0){
+      startBtn.textContent = `继续答题（已答 ${answered} 题）`;
+      startBtn.onclick = ()=>{
+        if (!state.user.name) goInfo();
+        else { show(elQuiz); renderQ(); }
+      };
+    }
+  }
+})();
+</script>
+</body>
+</html>
